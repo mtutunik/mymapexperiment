@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <fragment xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/map"
+        android:name="com.google.android.gms.maps.SupportMapFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:context="free.mtutunik.mygooglemap.MapsActivity" />
+
+    <android.support.constraint.Guideline
+        android:id="@+id/vertGuideline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.1" />
+
+    <android.support.constraint.Guideline
+        android:id="@+id/vertGuideline1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.5" />
+
+
+    <ImageButton
+        android:id="@+id/new_tour_button"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:src="@android:drawable/ic_menu_edit"
+        app:layout_constraintEnd_toStartOf="@+id/mic_button"
+        app:layout_constraintHorizontal_chainStyle="spread"
+        app:layout_constraintStart_toStartOf="@id/vertGuideline"
+        app:srcCompat="@android:drawable/ic_menu_edit" />
+
+
+    <ImageButton
+        android:id="@+id/mic_button"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:src="@android:drawable/ic_btn_speak_now"
+        app:layout_constraintBaseline_toBaselineOf="@id/new_tour_button"
+        app:layout_constraintStart_toEndOf="@+id/new_tour_button"
+        app:layout_constraintEnd_toStartOf="@+id/stop_button"/>
+
+    <ImageButton
+        android:id="@+id/stop_button"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:src="@drawable/control_stop_blue"
+        app:layout_constraintBaseline_toBaselineOf="@+id/mic_button"
+        app:layout_constraintStart_toEndOf="@+id/mic_button"
+        app:layout_constraintEnd_toStartOf="@+id/play_button"/>
+
+
+
+    <ImageButton
+        android:id="@+id/play_button"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:src="@drawable/play_blue1"
+        app:layout_constraintBaseline_toBaselineOf="@+id/stop_button"
+        app:layout_constraintStart_toEndOf="@+id/stop_button"
+        app:layout_constraintEnd_toStartOf="@+id/vertGuideline1"/>
+
+
+</android.support.constraint.ConstraintLayout>
