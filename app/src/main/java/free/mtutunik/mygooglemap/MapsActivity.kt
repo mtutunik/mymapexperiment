@@ -2,19 +2,18 @@ package free.mtutunik.mygooglemap
 
 import android.Manifest
 import android.app.Activity
-import android.content.ContentValues
-import android.content.Context
-import android.content.Intent
-import android.content.IntentSender
+import android.content.*
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.location.Location
 import android.media.Image
 import android.media.MediaPlayer
 import android.media.MediaRecorder
+import android.media.MediaScannerConnection
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Environment
+import android.os.IBinder
 import android.support.v4.app.ActivityCompat
 import android.util.Log
 import android.widget.ImageButton
@@ -34,6 +33,8 @@ import org.jetbrains.anko.uiThread
 import java.io.File
 import java.io.FileOutputStream
 import java.net.URL
+import java.util.*
+import kotlin.concurrent.fixedRateTimer
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private val TAG = "MapsActivity"
@@ -44,6 +45,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         private const val POSITION_FILE_NAME = "testposition.txt"
         private const val AUDIO_FNAME = "voice"
         private const val AUDIO_RECORD_PERMISSION_REQUEST_CODE = 2
+
     }
 
     private lateinit var mMap: GoogleMap
@@ -75,6 +77,24 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var mNewTourButton: ImageButton
 
     private lateinit var mDbHelper: DbHelper
+    var mPlayerService: PlayerService? = null
+    var mIsBound = false
+
+    private val mPlayerServiceConnection = object : ServiceConnection {
+        override fun onServiceConnected(className: ComponentName,
+                                        service: IBinder) {
+            val binder = service as PlayerService.PlayerBinder
+            mPlayerService = binder.getService()
+            mPlayerService?.mDbHelper = mDbHelper
+            mIsBound = true
+        }
+
+        override fun onServiceDisconnected(name: ComponentName) {
+            mIsBound = false
+        }
+    }
+
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -102,7 +122,12 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
         mStopButton.setOnClickListener() {
-            stopAudio()
+            if (mIsRecording) {
+                mPlayerService?.stopRecordingAudio()
+            }
+            else {
+                mPlayerService?.stopPlayingAudio()
+            }
         }
 
         mNewTourButton.setOnClickListener() {
@@ -121,11 +146,15 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 super.onLocationResult(p0)
 
                 mLastLocation = p0.lastLocation
+                mPlayerService.mLastLocation = mLastLocation
 
                 updateTracking(p0.lastLocation)
             }
         }
 
+        var intent = Intent(this, PlayerService::class.java)
+
+        bindService(intent, mPlayerServiceConnection, Context.BIND_AUTO_CREATE)
     }
 
 
@@ -146,6 +175,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     override fun onDestroy() {
         mFusedLocationClient.removeLocationUpdates(mLocationCallback)
+        unbindService(mPlayerServiceConnection)
         super.onDestroy()
     }
 
@@ -177,6 +207,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         mFusedLocationClient.lastLocation.addOnSuccessListener(this){ location ->
             mLastLocation = location
+            mPlayerService.mLastLocation = mLastLocation
             moveCameraToLocation(location)
             createLocationRequest()
             startLocationUpdates()
@@ -389,43 +420,27 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun recordAudio(fname: String) {
-
-        try {
-            if (!mPermissionToRecordAccepted) {
-                Log.d(TAG, "Recording not allowed!")
-                return
-            }
-            mMediaRecorder = MediaRecorder()
-            mMediaRecorder?.setAudioSource(MediaRecorder.AudioSource.MIC)
-            mMediaRecorder?.setOutputFormat(
-                    MediaRecorder.OutputFormat.AAC_ADTS)
-            mMediaRecorder?.setOutputFile(fname)
-            mMediaRecorder?.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-            mMediaRecorder?.prepare()
-        } catch (e: Exception) {
-            e.printStackTrace()
+        if (!mPermissionToRecordAccepted) {
+            Log.d(TAG, "Recording not allowed!")
+            return
         }
-        mMediaRecorder?.start()
+
+        mPlayerService?.recordAudio(fname)
         mIsRecording = true
+
     }
 
-    fun stopAudio() {
-        if (mIsRecording) {
-            mMediaRecorder?.stop()
-            mMediaRecorder?.release()
-            mMediaRecorder = null
-            mIsRecording = false
-        } else {
-            mMediaPlayer?.release()
-            mMediaPlayer = null
-        }
+    fun stopRecordingAudio() {
+        mPlayerService?.stopRecordingAudio()
     }
+
+    fun stopPlayingAudio() {
+        mPlayerService?.stopPlayingAudio()
+    }
+
 
     fun playAudio(fname : String) {
-        mMediaPlayer = MediaPlayer()
-        mMediaPlayer?.setDataSource(fname)
-        mMediaPlayer?.prepare()
-        mMediaPlayer?.start()
+        mPlayerService?.playAudio(fname)
     }
 
 
